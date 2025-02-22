@@ -1,6 +1,6 @@
 /* Custom CSS */
 body {
-    font-family: 'Arial', sans-serif;
+    font-family: 'Prompt', sans-serif;
 }
 
 .navbar-brand {
@@ -8,7 +8,8 @@ body {
 }
 
 .hero-section {
-    padding: 100px 0;
+    padding-top: 5px; /* Mengurangi padding atas pada hero section */
+    padding-bottom: 10px; /* Mengurangi padding bawah pada hero section */
 }
 
 .card {
@@ -30,5 +31,14 @@ body {
 }
 
 footer {
-    margin-top: 100px;
+    margin-top: 50px; /* Mengurangi margin atas pada footer */
 }
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Prompt', sans-serif;
+}
+.prompt-thin {
+    font-family: "Prompt", serif;
+    font-weight: 100;
+    font-style: normal;
+  }

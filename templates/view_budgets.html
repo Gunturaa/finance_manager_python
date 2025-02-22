@@ -4,30 +4,114 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anggaran Bulanan</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
-    <h1>Daftar Anggaran</h1>
-    <table border="1">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Kategori</th>
-                <th>Jumlah</th>
-                <th>Bulan</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for budget in budgets %}
-            <tr>
-                <td>{{ budget[0] }}</td>
-                <td>{{ budget[1] }}</td>
-                <td>{{ budget[2] }}</td>
-                <td>{{ budget[3] }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    <a href="{{ url_for('index') }}">Kembali ke Beranda</a>
+<body class="bg-light">
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="card-title"><i class="fas fa-wallet"></i> Daftar Anggaran</h3>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Kategori</th>
+                                    <th>Jumlah</th>
+                                    <th>Bulan</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for budget in budgets %}
+                                <tr>
+                                    <td>{{ budget[0] }}</td>
+                                    <td>{{ budget[1] }}</td>
+                                    <td>{{ budget[2] }}</td>
+                                    <td>{{ budget[3] }}</td>
+                                    <td>
+                                        <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editModal{{ budget[0] }}"><i class="fas fa-edit"></i> Edit</button>
+                                        <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal{{ budget[0] }}"><i class="fas fa-trash"></i> Hapus</button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary mt-3"><i class="fas fa-arrow-left"></i> Kembali ke Beranda</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Edit -->
+    {% for budget in budgets %}
+    <div class="modal fade" id="editModal{{ budget[0] }}" tabindex="-1" aria-labelledby="editModalLabel{{ budget[0] }}" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editModalLabel{{ budget[0] }}">Edit Anggaran</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" action="{{ url_for('edit_budget', budget_id=budget[0]) }}">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="category" class="form-label">Kategori:</label>
+                            <input type="text" id="category" name="category" class="form-control" value="{{ budget[1] }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="amount" class="form-label">Jumlah:</label>
+                            <input type="number" id="amount" name="amount" step="0.01" class="form-control" value="{{ budget[2] }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="month" class="form-label">Bulan:</label>
+                            <input type="month" id="month" name="month" class="form-control" value="{{ budget[3] }}" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">Simpan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Modal Delete -->
+    {% for budget in budgets %}
+    <div class="modal fade" id="deleteModal{{ budget[0] }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ budget[0] }}" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel{{ budget[0] }}">Hapus Anggaran</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Apakah Anda yakin ingin menghapus anggaran ini?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <form method="POST" action="{{ url_for('delete_budget', budget_id=budget[0]) }}">
+                        <button type="submit" class="btn btn-danger">Hapus</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Font Awesome -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
 </body>
 </html>

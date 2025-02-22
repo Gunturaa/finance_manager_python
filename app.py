@@ -250,11 +250,37 @@ def add_budget():
 def view_budgets():
     db = connect_to_database()
     cursor = db.cursor()
-    cursor.execute("SELECT * FROM budgets")
+    cursor.execute("SELECT id, category, amount, month FROM budgets")
     budgets = cursor.fetchall()
     cursor.close()
     db.close()
     return render_template('view_budgets.html', budgets=budgets)
+
+@app.route('/edit_budget/<int:budget_id>', methods=['POST'])
+def edit_budget(budget_id):
+    category = request.form['category']
+    amount = request.form['amount']
+    month = request.form['month']
+    db = connect_to_database()
+    cursor = db.cursor()
+    query = "UPDATE budgets SET category = %s, amount = %s, month = %s WHERE id = %s"
+    values = (category, amount, month, budget_id)
+    cursor.execute(query, values)
+    db.commit()
+    cursor.close()
+    db.close()
+    return redirect(url_for('view_budgets'))
+
+@app.route('/delete_budget/<int:budget_id>', methods=['POST'])
+def delete_budget(budget_id):
+    db = connect_to_database()
+    cursor = db.cursor()
+    query = "DELETE FROM budgets WHERE id = %s"
+    cursor.execute(query, (budget_id,))
+    db.commit()
+    cursor.close()
+    db.close()
+    return redirect(url_for('view_budgets'))
 
 # Route untuk menambahkan hutang-piutang
 @app.route('/add_debt', methods=['GET', 'POST'])
