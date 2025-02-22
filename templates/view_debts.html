@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hutang/Piutang</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Daftar Hutang/Piutang</h1>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nama Orang</th>
+                <th>Jumlah</th>
+                <th>Jenis</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for debt in debts %}
+            <tr>
+                <td>{{ debt[0] }}</td>
+                <td>{{ debt[1] }}</td>
+                <td>{{ debt[2] }}</td>
+                <td>{{ debt[3] }}</td>
+                <td>{{ 'Lunas' if debt[4] else 'Belum Lunas' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <a href="{{ url_for('index') }}">Kembali ke Beranda</a>
+</body>
+</html>

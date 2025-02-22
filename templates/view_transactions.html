@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lihat Transaksi</title>
+    
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-light">
+
+    <div class="container mt-5">
+        <div class="card shadow-lg p-4">
+            <h2 class="text-center mb-4 text-primary">
+                <i class="fas fa-list"></i> Daftar Transaksi
+            </h2>
+
+            <!-- Tabel Transaksi -->
+            <div class="table-responsive">
+                <table class="table table-striped table-bordered text-center align-middle">
+                    <thead class="table-dark text-uppercase">
+                        <tr>
+                            <th>ID</th>
+                            <th>Tanggal</th>
+                            <th>Deskripsi</th>
+                            <th>Jumlah</th>
+                            <th>Kategori</th>
+                            <th>Jenis</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in transactions %}
+                        <tr>
+                            <td>{{ transaction[0] }}</td>
+                            <td>{{ transaction[1] }}</td>
+                            <td>{{ transaction[2] }}</td>
+                            <td class="fw-bold text-success">Rp {{ transaction[3] | int }}</td>
+                            <td>{{ transaction[4] }}</td>
+                            <td>{{ transaction[5] }}</td>
+                            <td>
+                                <a href="{{ url_for('edit_transaction', transaction_id=transaction[0]) }}" class="btn btn-warning btn-sm mx-1">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a>
+                                <form action="{{ url_for('delete_transaction', transaction_id=transaction[0]) }}" method="POST" style="display:inline;">
+                                    <button type="submit" class="btn btn-danger btn-sm mx-1" onclick="return confirm('Anda yakin ingin menghapus transaksi ini?');">
+                                        <i class="fas fa-trash"></i> Hapus
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Total Transaksi Hari Ini -->
+            <div class="card mt-4 p-3 bg-success text-white text-center shadow-sm">
+                <h5 class="fw-bold">
+                    <i class="fas fa-money-bill-wave"></i> Total Transaksi Hari Ini
+                </h5>
+                <p class="fs-3 fw-bold">Rp {{ total_today | int }}</p>
+            </div>
+                     <!-- Tombol Download PDF -->
+<div class="text-center mt-3">
+    <a href="{{ url_for('download_pdf') }}" class="btn btn-danger">
+        <i class="fas fa-file-pdf"></i> Download PDF
+    </a>
+</div>
+
+
+   
+            <!-- Tombol Kembali ke Beranda -->
+            <div class="text-center mt-3">
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                    <i class="fas fa-home"></i> Kembali ke Beranda
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

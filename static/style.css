@@ -1,0 +1,34 @@
+/* Custom CSS */
+body {
+    font-family: 'Arial', sans-serif;
+}
+
+.navbar-brand {
+    font-weight: bold;
+}
+
+.hero-section {
+    padding: 100px 0;
+}
+
+.card {
+    transition: transform 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-10px);
+}
+
+.btn-primary {
+    background-color: #0c9924;
+    border-color: #04da00;
+}
+
+.btn-primary:hover {
+    background-color: #0b5ed7;
+    border-color: #0b5ed7;
+}
+
+footer {
+    margin-top: 100px;
+}

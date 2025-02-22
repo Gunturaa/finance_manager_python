@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tagihan Rutin</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Daftar Tagihan</h1>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nama</th>
+                <th>Jumlah</th>
+                <th>Jatuh Tempo</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for bill in bills %}
+            <tr>
+                <td>{{ bill[0] }}</td>
+                <td>{{ bill[1] }}</td>
+                <td>{{ bill[2] }}</td>
+                <td>{{ bill[3] }}</td>
+                <td>{{ 'Lunas' if bill[4] else 'Belum Lunas' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <a href="{{ url_for('index') }}">Kembali ke Beranda</a>
+</body>
+</html>
