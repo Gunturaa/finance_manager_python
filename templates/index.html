@@ -16,34 +16,29 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand animate__animated animate__fadeInLeft" href="/">
-            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="" style="height: 30px; margin-right: 10px;">
-            Manajemen Keuangan
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="" style="height: 30px; margin-right: 10px;">
+                Manajemen Keuangan
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link animate__animated animate__fadeInDown" href="{{ url_for('add_transaction') }}">Tambah Transaksi</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link animate__animated animate__fadeInDown" href="{{ url_for('view_transactions') }}">Lihat Transaksi</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link animate__animated animate__fadeInDown" href="{{ url_for('calculate_balance') }}">Hitung Saldo</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link animate__animated animate__fadeInDown" href="{{ url_for('add_bill') }}">Tagihan</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link animate__animated animate__fadeInDown" href="{{ url_for('add_budget') }}">Anggaran</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link animate__animated animate__fadeInDown" href="{{ url_for('add_debt') }}">Hutang/Piutang</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link animate__animated animate__fadeInDown" href="{{ url_for('download_excel') }}">Download Excel</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle animate__animated animate__fadeInDown" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Menu
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                            <li><a class="dropdown-item" href="{{ url_for('add_transaction') }}">Tambah Transaksi</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('view_transactions') }}">Lihat Transaksi</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('add_bill') }}">Tagihan</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('add_budget') }}">Anggaran</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('add_debt') }}">Hutang/Piutang</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('view_debts') }}">Lihat Hutang</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('view_bills') }}">Lihat Tagihan</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('view_budgets') }}">Lihat Anggaran</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('download_excel') }}">Download Excel</a></li>
+                        </ul>
                     </li>
                 </ul>
             </div>

@@ -105,7 +105,7 @@ def download_pdf():
     # Log the file path
     logging.debug("PDF file created: %s", os.path.abspath(pdf_filename))
 
-    return send_file(pdf_filename, as_attachment=True)
+    return send_file(pdf_filename, as_attachment=True) 
 
 @app.route('/edit/<int:transaction_id>', methods=['GET', 'POST'])
 def edit_transaction(transaction_id):
@@ -196,11 +196,35 @@ def add_bill():
 def view_bills():
     db = connect_to_database()
     cursor = db.cursor()
-    cursor.execute("SELECT * FROM bills")
+    cursor.execute("SELECT id, name, amount, due_date, is_paid FROM bills")
     bills = cursor.fetchall()
     cursor.close()
     db.close()
     return render_template('view_bills.html', bills=bills)
+
+@app.route('/edit_bill/<int:bill_id>', methods=['POST'])
+def edit_bill(bill_id):
+    is_paid = request.form['is_paid']
+    db = connect_to_database()
+    cursor = db.cursor()
+    query = "UPDATE bills SET is_paid = %s WHERE id = %s"
+    values = (is_paid, bill_id)
+    cursor.execute(query, values)
+    db.commit()
+    cursor.close()
+    db.close()
+    return redirect(url_for('view_bills'))
+
+@app.route('/delete_bill/<int:bill_id>', methods=['POST'])
+def delete_bill(bill_id):
+    db = connect_to_database()
+    cursor = db.cursor()
+    query = "DELETE FROM bills WHERE id = %s"
+    cursor.execute(query, (bill_id,))
+    db.commit()
+    cursor.close()
+    db.close()
+    return redirect(url_for('view_bills'))
 
 # Route untuk menambahkan anggaran bulanan
 @app.route('/add_budget', methods=['GET', 'POST'])
@@ -251,16 +275,40 @@ def add_debt():
         return redirect(url_for('view_debts'))
     return render_template('add_debt.html')
 
-# Route untuk melihat hutang-piutang
+# Route untuk melihat hutang/piutang
 @app.route('/view_debts')
 def view_debts():
     db = connect_to_database()
     cursor = db.cursor()
-    cursor.execute("SELECT * FROM debts")
+    cursor.execute("SELECT id, person, amount, type, is_paid FROM debts")
     debts = cursor.fetchall()
     cursor.close()
     db.close()
     return render_template('view_debts.html', debts=debts)
+
+@app.route('/edit_debt/<int:debt_id>', methods=['POST'])
+def edit_debt(debt_id):
+    is_paid = request.form['is_paid']
+    db = connect_to_database()
+    cursor = db.cursor()
+    query = "UPDATE debts SET is_paid = %s WHERE id = %s"
+    values = (is_paid, debt_id)
+    cursor.execute(query, values)
+    db.commit()
+    cursor.close()
+    db.close()
+    return redirect(url_for('view_debts'))
+
+@app.route('/delete_debt/<int:debt_id>', methods=['POST'])
+def delete_debt(debt_id):
+    db = connect_to_database()
+    cursor = db.cursor()
+    query = "DELETE FROM debts WHERE id = %s"
+    cursor.execute(query, (debt_id,))
+    db.commit()
+    cursor.close()
+    db.close()
+    return redirect(url_for('view_debts'))
 
 # Route untuk download pengeluaran ke Excel
 @app.route('/download_excel')
