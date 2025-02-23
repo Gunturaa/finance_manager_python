@@ -1,54 +1,40 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Transaksi</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body>
-    <div class="container mt-5">
-        <div class="card shadow-lg p-4">
-            <h2 class="text-center mb-4"><i class="fas fa-edit"></i> Edit Transaksi</h2>
+{% extends "base_dashboard.html" %}
 
-            <form action="{{ url_for('edit_transaction', transaction_id=transaction[0]) }}" method="POST">
-                <div class="mb-3">
-                    <label for="date" class="form-label">Tanggal</label>
-                    <input type="date" class="form-control" id="date" name="date" value="{{ transaction[1] }}" required>
-                </div>
-                
-                <div class="mb-3">
-                    <label for="description" class="form-label">Deskripsi</label>
-                    <input type="text" class="form-control" id="description" name="description" value="{{ transaction[2] }}" required>
-                </div>
-                
-                <div class="mb-3">
-                    <label for="amount" class="form-label">Jumlah</label>
-                    <input type="number" step="0.01" class="form-control" id="amount" name="amount" value="{{ transaction[3] }}" required>
-                </div>
-                
-                <div class="mb-3">
-                    <label for="category" class="form-label">Kategori</label>
-                    <input type="text" class="form-control" id="category" name="category" value="{{ transaction[4] }}" required>
-                </div>
-                
-                <div class="mb-3">
-                    <label for="type" class="form-label">Jenis</label>
-                    <select class="form-control" id="type" name="type" required>
-                        <option value="income" {% if transaction[5] == 'income' %}selected{% endif %}>Income</option>
-                        <option value="expense" {% if transaction[5] == 'expense' %}selected{% endif %}>Expense</option>
-                    </select>
-                </div>
+{% block title %}Edit Transaction{% endblock %}
 
-                <div class="text-center">
-                    <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Simpan</button>
-                    <a href="{{ url_for('view_transactions') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Batal</a>
-                </div>
-            </form>
-        </div>
+{% block content %}
+<header>
+    <h1>Edit Transaction</h1>
+</header>
+<main class="dashboard-container">
+    <div class="dashboard-card">
+        <form method="POST" action="{{ url_for('edit_transaction', transaction_id=transaction.id) }}">
+            <div class="mb-3">
+                <label for="date" class="form-label">Date</label>
+                <input type="date" id="date" name="date" class="form-control" value="{{ transaction.date }}" required>
+            </div>
+            <div class="mb-3">
+                <label for="description" class="form-label">Description</label>
+                <input type="text" id="description" name="description" class="form-control" value="{{ transaction.description }}" required>
+            </div>
+            <div class="mb-3">
+                <label for="amount" class="form-label">Amount</label>
+                <input type="number" id="amount" name="amount" class="form-control" value="{{ transaction.amount }}" required>
+            </div>
+            <div class="mb-3">
+                <label for="category" class="form-label">Category</label>
+                <input type="text" id="category" name="category" class="form-control" value="{{ transaction.category }}" required>
+            </div>
+            <div class="mb-3">
+                <label for="type" class="form-label">Type</label>
+                <select id="type" name="type" class="form-control" required>
+                    <option value="income" {% if transaction.type == 'income' %}selected{% endif %}>Income</option>
+                    <option value="expense" {% if transaction.type == 'expense' %}selected{% endif %}>Expense</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <a href="{{ url_for('view_transactions') }}" class="btn btn-secondary">Cancel</a>
+        </form>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+</main>
+{% endblock %}

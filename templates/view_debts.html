@@ -1,112 +1,53 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hutang/Piutang</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body class="bg-light">
-    <div class="container mt-5">
-        <div class="row justify-content-center">
-            <div class="col-md-10">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-primary text-white">
-                        <h3 class="card-title"><i class="fas fa-money-bill-wave"></i> Daftar Hutang/Piutang</h3>
-                    </div>
-                    <div class="card-body">
-                        <table class="table table-striped table-hover">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Nama Orang</th>
-                                    <th>Jumlah</th>
-                                    <th>Jenis</th>
-                                    <th>Status</th>
-                                    <th>Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for debt in debts %}
-                                <tr>
-                                    <td>{{ debt[0] }}</td>
-                                    <td>{{ debt[1] }}</td>
-                                    <td>{{ debt[2] }}</td>
-                                    <td>{{ debt[3] }}</td>
-                                    <td>{{ 'Lunas' if debt[4] else 'Belum Lunas' }}</td>
-                                    <td>
-                                        <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editModal{{ debt[0] }}"><i class="fas fa-edit"></i> Edit</button>
-                                        <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal{{ debt[0] }}"><i class="fas fa-trash"></i> Hapus</button>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                        <a href="{{ url_for('index') }}" class="btn btn-secondary mt-3"><i class="fas fa-arrow-left"></i> Kembali ke Beranda</a>
-                    </div>
-                </div>
+{% extends "base_dashboard.html" %}
+
+{% block title %}Lihat Hutang{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Hutang</h1>
+        <a href="/add_debt" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+            <i class="fas fa-plus fa-sm text-white-50"></i> Tambah Hutang
+        </a>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Daftar Hutang</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="recent-transactions" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Orang</th>
+                            <th>Jumlah</th>
+                            <th>Jenis</th>
+                            <th>Status</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for debt in debts %}
+                        <tr>
+                            <td style="color: #333;">{{ debt.id }}</td>
+                            <td style="color: #333;">{{ debt.person }}</td>
+                            <td style="color: #333;">Rp {{ debt.amount }}</td>
+                            <td style="color: #333;">{{ debt.type }}</td>
+                            <td style="color: #333;">{{ 'Lunas' if debt.is_paid else 'Belum Lunas' }}</td>
+                            <td>
+                                <a href="{{ url_for('edit_debt', debt_id=debt.id) }}" class="btn btn-sm btn-primary">Edit</a>
+                                <form action="{{ url_for('delete_debt', debt_id=debt.id) }}" method="POST" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-danger">Hapus</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
-
-    <!-- Modal Edit -->
-    {% for debt in debts %}
-    <div class="modal fade" id="editModal{{ debt[0] }}" tabindex="-1" aria-labelledby="editModalLabel{{ debt[0] }}" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editModalLabel{{ debt[0] }}">Edit Status Hutang/Piutang</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <form method="POST" action="{{ url_for('edit_debt', debt_id=debt[0]) }}">
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label for="is_paid" class="form-label">Status:</label>
-                            <select id="is_paid" name="is_paid" class="form-select">
-                                <option value="1" {% if debt[4] %}selected{% endif %}>Lunas</option>
-                                <option value="0" {% if not debt[4] %}selected{% endif %}>Belum Lunas</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-primary">Simpan</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    {% endfor %}
-
-    <!-- Modal Delete -->
-    {% for debt in debts %}
-    <div class="modal fade" id="deleteModal{{ debt[0] }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ debt[0] }}" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="deleteModalLabel{{ debt[0] }}">Hapus Hutang/Piutang</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    Apakah Anda yakin ingin menghapus hutang/piutang ini?
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <form method="POST" action="{{ url_for('delete_debt', debt_id=debt[0]) }}">
-                        <button type="submit" class="btn btn-danger">Hapus</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endfor %}
-
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Font Awesome -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
-</body>
-</html>
+</div>
+{% endblock %}

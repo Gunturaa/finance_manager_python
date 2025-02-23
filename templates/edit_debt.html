@@ -1,0 +1,35 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Edit Hutang{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="h3 mb-4 text-gray-800">Edit Hutang</h1>
+    <form action="{{ url_for('edit_debt', debt_id=debt.id) }}" method="POST">
+        <div class="mb-3">
+            <label for="person" class="form-label">Orang</label>
+            <input type="text" class="form-control" id="person" name="person" value="{{ debt.person }}" required>
+        </div>
+        <div class="mb-3">
+            <label for="amount" class="form-label">Jumlah</label>
+            <input type="number" class="form-control" id="amount" name="amount" value="{{ debt.amount }}" required>
+        </div>
+        <div class="mb-3">
+            <label for="type" class="form-label">Jenis</label>
+            <select class="form-control" id="type" name="type" required>
+                <option value="loan" {% if debt.type == 'loan' %}selected{% endif %}>Pinjaman</option>
+                <option value="borrow" {% if debt.type == 'borrow' %}selected{% endif %}>Hutang</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="is_paid" class="form-label">Status</label>
+            <select class="form-control" id="is_paid" name="is_paid" required>
+                <option value="1" {% if debt.is_paid %}selected{% endif %}>Lunas</option>
+                <option value="0" {% if not debt.is_paid %}selected{% endif %}>Belum Lunas</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Simpan</button>
+        <a href="{{ url_for('view_debts') }}" class="btn btn-secondary">Batal</a>
+    </form>
+</div>
+{% endblock %}
