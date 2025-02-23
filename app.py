@@ -2,19 +2,69 @@ from flask import Flask, render_template, request, redirect, url_for, send_file,
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 import mysql.connector
-from datetime import datetime
+from datetime import datetime, date
 import pandas as pd
-from datetime import date 
 from io import BytesIO
 import logging
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
+import schedule
+import time
+from twilio.rest import Client
 
 app = Flask(__name__)
 app.secret_key = b'%\x15\xf8\xa7\xbf\xa79\xa9\x16\xa22\x91\xb6\x1eJI\xb9\xa3\x993O\xcfPm'  # Secret key yang dihasilkan
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Twilio configuration
+account_sid = 'your_account_sid'
+auth_token = 'your_auth_token'
+client = Client(account_sid, auth_token)
+
+def send_whatsapp_message(to, message):
+    from_whatsapp_number = 'whatsapp:+14155238886'  # Your Twilio WhatsApp-enabled number
+    to_whatsapp_number = f'whatsapp:{to}'
+
+    client.messages.create(
+        body=message,
+        from_=from_whatsapp_number,
+        to=to_whatsapp_number
+    )
+
+# Function to check for due bills and send WhatsApp message
+def check_due_bills():
+    db = connect_to_database()
+    cursor = db.cursor(dictionary=True)
+    
+    # Get today's date
+    today = date.today()
+    
+    # Fetch bills that are due today
+    cursor.execute("SELECT name, amount, due_date FROM bills WHERE due_date = %s", (today,))
+    due_bills = cursor.fetchall()
+    
+    cursor.close()
+    db.close()
+    
+    for bill in due_bills:
+        message = f"Tagihan {bill['name']} sebesar Rp {bill['amount']} jatuh tempo hari ini."
+        send_whatsapp_message('+6289515441332', message)
+
+# Schedule the check_due_bills function to run daily
+schedule.every().day.at("08:00").do(check_due_bills)
+
+# Run the scheduled tasks
+def run_scheduler():
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+
+# Start the scheduler in a separate thread
+import threading
+scheduler_thread = threading.Thread(target=run_scheduler)
+scheduler_thread.start()
 
 # Fungsi untuk koneksi ke database
 def connect_to_database():
@@ -36,28 +86,29 @@ def dashboard():
         flash('Please log in to access this page.', 'danger')
         return redirect(url_for('login'))
         
+    user_id = session['user_id']
     db = connect_to_database()
     cursor = db.cursor(dictionary=True)
     
     # Get total income
-    cursor.execute("SELECT SUM(amount) AS total_income FROM transactions WHERE type = 'income'")
+    cursor.execute("SELECT SUM(amount) AS total_income FROM transactions WHERE type = 'income' AND user_id = %s", (user_id,))
     total_income = cursor.fetchone()['total_income'] or 0
     
     # Get total expenses
-    cursor.execute("SELECT SUM(amount) AS total_expenses FROM transactions WHERE type = 'expense'")
+    cursor.execute("SELECT SUM(amount) AS total_expenses FROM transactions WHERE type = 'expense' AND user_id = %s", (user_id,))
     total_expenses = cursor.fetchone()['total_expenses'] or 0
     
     # Calculate current balance
     current_balance = total_income - total_expenses
     
     # Get recent transactions
-    cursor.execute("SELECT date, description, amount, type FROM transactions ORDER BY date DESC LIMIT 5")
+    cursor.execute("SELECT date, description, amount, type FROM transactions WHERE user_id = %s ORDER BY date DESC LIMIT 5", (user_id,))
     recent_transactions = cursor.fetchall()
     
     # Get data for chart
-    cursor.execute("SELECT date, SUM(amount) AS amount FROM transactions WHERE type = 'income' GROUP BY date ORDER BY date")
+    cursor.execute("SELECT date, SUM(amount) AS amount FROM transactions WHERE type = 'income' AND user_id = %s GROUP BY date ORDER BY date", (user_id,))
     income_data = cursor.fetchall()
-    cursor.execute("SELECT date, SUM(amount) AS amount FROM transactions WHERE type = 'expense' GROUP BY date ORDER BY date")
+    cursor.execute("SELECT date, SUM(amount) AS amount FROM transactions WHERE type = 'expense' AND user_id = %s GROUP BY date ORDER BY date", (user_id,))
     expenses_data = cursor.fetchall()
     
     labels = [data['date'] for data in income_data]
@@ -103,26 +154,26 @@ def logout():
     flash('You have been logged out.', 'success')
     return redirect(url_for('login'))
 
-
-
 # Route untuk menambahkan transaksi
 @app.route('/add', methods=['GET', 'POST'])
 def add_transaction():
+    if 'user_id' not in session:
+        flash('Please log in to access this page.', 'danger')
+        return redirect(url_for('login'))
+
     if request.method == 'POST':
         date = request.form['date']
         description = request.form['description']
         amount = float(request.form['amount'])
         category = request.form['category']
         transaction_type = request.form['type']
+        user_id = session['user_id']
 
         db = connect_to_database()
         cursor = db.cursor()
-        query = "INSERT INTO transactions (date, description, amount, category, type) VALUES (%s, %s, %s, %s, %s)"
-        values = (date, description, amount, category, transaction_type)
-        logging.debug("Inserting transaction: date=%s, description=%s, amount=%s, category=%s, type=%s", date, description, amount, category, transaction_type)
+        query = "INSERT INTO transactions (date, description, amount, category, type, user_id) VALUES (%s, %s, %s, %s, %s, %s)"
+        values = (date, description, amount, category, transaction_type, user_id)
         cursor.execute(query, values)
-        logging.debug("Inserted transaction: %s", values)  # Log the inserted transaction
-        logging.debug("Transaction inserted successfully.")
         db.commit()
         cursor.close()
         db.close()
@@ -131,9 +182,10 @@ def add_transaction():
 
 # Fungsi untuk mengambil transaksi dari database
 def get_transactions():
+    user_id = session['user_id']
     db = connect_to_database()
     cursor = db.cursor()
-    cursor.execute("SELECT id, date, description, amount, category, type FROM transactions")
+    cursor.execute("SELECT id, date, description, amount, category, type FROM transactions WHERE user_id = %s", (user_id,))
     transactions = cursor.fetchall()
     cursor.close()
     db.close()
@@ -194,9 +246,12 @@ def download_pdf():
 
     return send_file(pdf_filename, as_attachment=True)
 
-
 @app.route('/edit_transaction/<int:transaction_id>', methods=['GET', 'POST'])
 def edit_transaction(transaction_id):
+    if 'user_id' not in session:
+        flash('Please log in to access this page.', 'danger')
+        return redirect(url_for('login'))
+
     db = connect_to_database()
     cursor = db.cursor(dictionary=True)
     if request.method == 'POST':
@@ -205,16 +260,17 @@ def edit_transaction(transaction_id):
         amount = float(request.form['amount'])
         category = request.form['category']
         transaction_type = request.form['type']
+        user_id = session['user_id']
 
-        query = "UPDATE transactions SET date=%s, description=%s, amount=%s, category=%s, type=%s WHERE id=%s"
-        values = (date, description, amount, category, transaction_type, transaction_id)
+        query = "UPDATE transactions SET date=%s, description=%s, amount=%s, category=%s, type=%s WHERE id=%s AND user_id=%s"
+        values = (date, description, amount, category, transaction_type, transaction_id, user_id)
         cursor.execute(query, values)
         db.commit()
         cursor.close()
         db.close()
         return redirect(url_for('view_transactions'))
     else:
-        cursor.execute("SELECT * FROM transactions WHERE id=%s", (transaction_id,))
+        cursor.execute("SELECT * FROM transactions WHERE id=%s AND user_id=%s", (transaction_id, session['user_id']))
         transaction = cursor.fetchone()
         cursor.close()
         db.close()
@@ -222,10 +278,14 @@ def edit_transaction(transaction_id):
 
 @app.route('/delete_transaction/<int:transaction_id>', methods=['POST'])
 def delete_transaction(transaction_id):
+    if 'user_id' not in session:
+        flash('Please log in to access this page.', 'danger')
+        return redirect(url_for('login'))
+
     db = connect_to_database()
     cursor = db.cursor()
-    query = "DELETE FROM transactions WHERE id = %s"
-    cursor.execute(query, (transaction_id,))
+    query = "DELETE FROM transactions WHERE id = %s AND user_id = %s"
+    cursor.execute(query, (transaction_id, session['user_id']))
     db.commit()
     cursor.close()
     db.close()
@@ -234,9 +294,14 @@ def delete_transaction(transaction_id):
 # Route untuk melihat semua transaksi
 @app.route('/view_transactions')
 def view_transactions():
+    if 'user_id' not in session:
+        flash('Please log in to access this page.', 'danger')
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
     db = connect_to_database()
     cursor = db.cursor(dictionary=True)
-    cursor.execute("SELECT id, date, description, amount, type FROM transactions")
+    cursor.execute("SELECT id, date, description, amount, type FROM transactions WHERE user_id = %s", (user_id,))
     transactions = cursor.fetchall()
     cursor.close()
     db.close()
@@ -245,11 +310,16 @@ def view_transactions():
 # Route untuk menghitung saldo
 @app.route('/balance')
 def calculate_balance():
+    if 'user_id' not in session:
+        flash('Please log in to access this page.', 'danger')
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
     db = connect_to_database()
     cursor = db.cursor()
-    cursor.execute("SELECT SUM(amount) FROM transactions WHERE type = 'income'")
+    cursor.execute("SELECT SUM(amount) FROM transactions WHERE type = 'income' AND user_id = %s", (user_id,))
     total_income = cursor.fetchone()[0] or 0
-    cursor.execute("SELECT SUM(amount) FROM transactions WHERE type = 'expense'")
+    cursor.execute("SELECT SUM(amount) FROM transactions WHERE type = 'expense' AND user_id = %s", (user_id,))
     total_expense = cursor.fetchone()[0] or 0
     balance = total_income - total_expense
     cursor.close()
@@ -259,15 +329,20 @@ def calculate_balance():
 # Route untuk menambahkan tagihan rutin
 @app.route('/add_bill', methods=['GET', 'POST'])
 def add_bill():
+    if 'user_id' not in session:
+        flash('Please log in to access this page.', 'danger')
+        return redirect(url_for('login'))
+
     if request.method == 'POST':
         name = request.form['name']
         amount = float(request.form['amount'])
         due_date = request.form['due_date']
+        user_id = session['user_id']
 
         db = connect_to_database()
         cursor = db.cursor()
-        query = "INSERT INTO bills (name, amount, due_date) VALUES (%s, %s, %s)"
-        values = (name, amount, due_date)
+        query = "INSERT INTO bills (name, amount, due_date, user_id) VALUES (%s, %s, %s, %s)"
+        values = (name, amount, due_date, user_id)
         cursor.execute(query, values)
         db.commit()
         cursor.close()
@@ -282,11 +357,12 @@ def view_bills():
         flash('Please log in to access this page.', 'danger')
         return redirect(url_for('login'))
         
+    user_id = session['user_id']
     db = connect_to_database()
     cursor = db.cursor(dictionary=True)
     
     # Fetch bills from the database
-    cursor.execute("SELECT id, name, amount, due_date FROM bills")
+    cursor.execute("SELECT id, name, amount, due_date FROM bills WHERE user_id = %s", (user_id,))
     bills = cursor.fetchall()
     
     cursor.close()
@@ -296,11 +372,16 @@ def view_bills():
 
 @app.route('/edit_bill/<int:bill_id>', methods=['POST'])
 def edit_bill(bill_id):
+    if 'user_id' not in session:
+        flash('Please log in to access this page.', 'danger')
+        return redirect(url_for('login'))
+
     is_paid = request.form['is_paid']
+    user_id = session['user_id']
     db = connect_to_database()
     cursor = db.cursor()
-    query = "UPDATE bills SET is_paid = %s WHERE id = %s"
-    values = (is_paid, bill_id)
+    query = "UPDATE bills SET is_paid = %s WHERE id = %s AND user_id = %s"
+    values = (is_paid, bill_id, user_id)
     cursor.execute(query, values)
     db.commit()
     cursor.close()
@@ -309,10 +390,15 @@ def edit_bill(bill_id):
 
 @app.route('/delete_bill/<int:bill_id>', methods=['POST'])
 def delete_bill(bill_id):
+    if 'user_id' not in session:
+        flash('Please log in to access this page.', 'danger')
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
     db = connect_to_database()
     cursor = db.cursor()
-    query = "DELETE FROM bills WHERE id = %s"
-    cursor.execute(query, (bill_id,))
+    query = "DELETE FROM bills WHERE id = %s AND user_id = %s"
+    cursor.execute(query, (bill_id, user_id))
     db.commit()
     cursor.close()
     db.close()
@@ -321,15 +407,20 @@ def delete_bill(bill_id):
 # Route untuk menambahkan anggaran bulanan
 @app.route('/add_budget', methods=['GET', 'POST'])
 def add_budget():
+    if 'user_id' not in session:
+        flash('Please log in to access this page.', 'danger')
+        return redirect(url_for('login'))
+
     if request.method == 'POST':
         category = request.form['category']
         amount = float(request.form['amount'])
         month = request.form['month']
+        user_id = session['user_id']
 
         db = connect_to_database()
         cursor = db.cursor()
-        query = "INSERT INTO budgets (category, amount, month) VALUES (%s, %s, %s)"
-        values = (category, amount, month)
+        query = "INSERT INTO budgets (category, amount, month, user_id) VALUES (%s, %s, %s, %s)"
+        values = (category, amount, month, user_id)
         cursor.execute(query, values)
         db.commit()
         cursor.close()
@@ -340,23 +431,37 @@ def add_budget():
 # Route untuk melihat anggaran bulanan
 @app.route('/view_budgets')
 def view_budgets():
+    if 'user_id' not in session:
+        flash('Please log in to access this page.', 'danger')
+        return redirect(url_for('login'))
+        
+    user_id = session['user_id']
     db = connect_to_database()
-    cursor = db.cursor()
-    cursor.execute("SELECT id, category, amount, month FROM budgets")
+    cursor = db.cursor(dictionary=True)
+    
+    # Fetch budgets from the database
+    cursor.execute("SELECT id, category, amount FROM budgets WHERE user_id = %s", (user_id,))
     budgets = cursor.fetchall()
+    
     cursor.close()
     db.close()
+    
     return render_template('view_budgets.html', budgets=budgets)
 
 @app.route('/edit_budget/<int:budget_id>', methods=['POST'])
 def edit_budget(budget_id):
+    if 'user_id' not in session:
+        flash('Please log in to access this page.', 'danger')
+        return redirect(url_for('login'))
+
     category = request.form['category']
     amount = request.form['amount']
     month = request.form['month']
+    user_id = session['user_id']
     db = connect_to_database()
     cursor = db.cursor()
-    query = "UPDATE budgets SET category = %s, amount = %s, month = %s WHERE id = %s"
-    values = (category, amount, month, budget_id)
+    query = "UPDATE budgets SET category = %s, amount = %s, month = %s WHERE id = %s AND user_id = %s"
+    values = (category, amount, month, budget_id, user_id)
     cursor.execute(query, values)
     db.commit()
     cursor.close()
@@ -365,10 +470,15 @@ def edit_budget(budget_id):
 
 @app.route('/delete_budget/<int:budget_id>', methods=['POST'])
 def delete_budget(budget_id):
+    if 'user_id' not in session:
+        flash('Please log in to access this page.', 'danger')
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
     db = connect_to_database()
     cursor = db.cursor()
-    query = "DELETE FROM budgets WHERE id = %s"
-    cursor.execute(query, (budget_id,))
+    query = "DELETE FROM budgets WHERE id = %s AND user_id = %s"
+    cursor.execute(query, (budget_id, user_id))
     db.commit()
     cursor.close()
     db.close()
@@ -385,11 +495,12 @@ def add_debt():
         person = request.form['person']
         amount = request.form['amount']
         debt_type = request.form['type']
+        user_id = session['user_id']
         
         db = connect_to_database()
         cursor = db.cursor()
-        query = "INSERT INTO debts (person, amount, type) VALUES (%s, %s, %s)"
-        values = (person, amount, debt_type)
+        query = "INSERT INTO debts (person, amount, type, user_id) VALUES (%s, %s, %s, %s)"
+        values = (person, amount, debt_type, user_id)
         cursor.execute(query, values)
         db.commit()
         cursor.close()
@@ -407,11 +518,12 @@ def view_debts():
         flash('Please log in to access this page.', 'danger')
         return redirect(url_for('login'))
         
+    user_id = session['user_id']
     db = connect_to_database()
     cursor = db.cursor(dictionary=True)
     
     # Fetch debts from the database
-    cursor.execute("SELECT id, person, amount, type, is_paid FROM debts")
+    cursor.execute("SELECT id, person, amount, type, is_paid FROM debts WHERE user_id = %s", (user_id,))
     debts = cursor.fetchall()
     
     cursor.close()
@@ -433,9 +545,10 @@ def edit_debt(debt_id):
         amount = request.form['amount']
         debt_type = request.form['type']
         is_paid = request.form['is_paid']
+        user_id = session['user_id']
         
-        query = "UPDATE debts SET person = %s, amount = %s, type = %s, is_paid = %s WHERE id = %s"
-        values = (person, amount, debt_type, is_paid, debt_id)
+        query = "UPDATE debts SET person = %s, amount = %s, type = %s, is_paid = %s WHERE id = %s AND user_id = %s"
+        values = (person, amount, debt_type, is_paid, debt_id, user_id)
         cursor.execute(query, values)
         db.commit()
         
@@ -446,7 +559,7 @@ def edit_debt(debt_id):
         return redirect(url_for('view_debts'))
     
     # Fetch the debt details to pre-fill the form
-    cursor.execute("SELECT id, person, amount, type, is_paid FROM debts WHERE id = %s", (debt_id,))
+    cursor.execute("SELECT id, person, amount, type, is_paid FROM debts WHERE id = %s AND user_id = %s", (debt_id, session['user_id']))
     debt = cursor.fetchone()
     
     cursor.close()
@@ -460,10 +573,15 @@ def edit_debt(debt_id):
 
 @app.route('/delete_debt/<int:debt_id>', methods=['POST'])
 def delete_debt(debt_id):
+    if 'user_id' not in session:
+        flash('Please log in to access this page.', 'danger')
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
     db = connect_to_database()
     cursor = db.cursor()
-    query = "DELETE FROM debts WHERE id = %s"
-    cursor.execute(query, (debt_id,))
+    query = "DELETE FROM debts WHERE id = %s AND user_id = %s"
+    cursor.execute(query, (debt_id, user_id))
     db.commit()
     cursor.close()
     db.close()
@@ -472,9 +590,10 @@ def delete_debt(debt_id):
 # Route untuk download pengeluaran ke Excel
 @app.route('/download_excel')
 def download_excel():
+    user_id = session['user_id']
     db = connect_to_database()
     cursor = db.cursor()
-    cursor.execute("SELECT * FROM transactions")
+    cursor.execute("SELECT * FROM transactions WHERE user_id = %s", (user_id,))
     transactions = cursor.fetchall()
     cursor.close()
     db.close()

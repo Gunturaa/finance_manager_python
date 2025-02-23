@@ -1,3 +1,2 @@
-import os
-secret_key = os.urandom(24)
-print(secret_key)
+import pywhatkit
+pywhatkit.sendwhatmsg("+6289515441332", "Uji coba apakah ini bisa digunakan")
